@@ -318,11 +318,10 @@ def process_lc(input_path,output_path):
 
 
 if __name__ == "__main__":
-    path = '/Users/jmbrashe/Data_Challenge/for_Jon'
-    lightcurves = glob.glob(path + '/*.lc')
-    #process_lc('/Users/jmbrashe/Downloads/OMPLDG_croin_cassan_sample/OMPLDG_croin_cassan_0_714_2178.det.lc', output_path='/Users/jmbrashe/Data_Challenge')
-    #print(lightcurves)
-    output_generator = Parallel(n_jobs=5,verbose=0)(delayed(process_lc)(lightcurves[i],'../small_test_outputs') for i in range(len(lightcurves)))
-    #times = np.array(output_generator)
-    #print(np.median(times),np.std(times))
-    #np.savetxt('../outputs/times.txt',times)
+    input_path = '/Users/jmbrashe/Data_Challenge/for_Jon'
+    output_path = '../small_test_outputs'
+    lightcurves = glob.glob(input_path + '/*.lc')
+    output_generator = Parallel(n_jobs=5,verbose=1)(delayed(process_lc)(lightcurves[i],output_path) for i in range(len(lightcurves)))
+    times = np.array(output_generator)
+    print(np.median(times),np.std(times))
+    np.savetxt(f'{output_path}/times.txt',times)

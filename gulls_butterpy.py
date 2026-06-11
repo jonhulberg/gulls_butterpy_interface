@@ -70,7 +70,7 @@ class GullsButterpyInterface:
 
     def draw_parameters(self):
         parameters_array = []
-        parameters_array.append(stats.loguniform.rvs(0.01,50, size=1)[0]) #activity level log_uniform 1-10
+        parameters_array.append(stats.loguniform.rvs(0.1,70, size=1)[0]) #activity level log_uniform 1-10
         parameters_array.append(stats.loguniform.rvs(1, 40, size=1)[0]) #cycle period log uniform 1-40 yr
         parameters_array.append(stats.loguniform.rvs(0.1, parameters_array[1], size=1)[0])  # cycle overlap log_uniform 0.1 - T_cycle
         parameters_array.append(stats.uniform.rvs(0, 40, size=1)[0]) # minlat uniform 0-40
@@ -141,7 +141,7 @@ class GullsButterpyInterface:
         self.renormalized_flux_full = spot_lc_full.flux / self.mean_flux
         self.time_full = spot_lc_full.time
 
-    def apply_blackbody_to_spot_lc(self, band_waves=[1.464, 0.869, 2.125]):
+    def apply_blackbody_to_spot_lc(self, band_waves=[1.464, 0.869, 2.125, 1.464, 0.869, 2.125]):
         '''
         Make the variable lightcurves band dependent.
         Based on a code Robby Wilson shared with me.
@@ -154,6 +154,7 @@ class GullsButterpyInterface:
         cond_list = []
         for i in range(len(self.fs1_list)):
             cond_list.append(self.gulls_dataframe['observatory_code'] == i)
+        # print(np.unique(self.gulls_dataframe['observatory_code']))
         flux_fraction = (spot_blackbody(np.array(band_waves) * u.um).value / star_blackbody(np.array(band_waves) * u.um).value)
         flux_fraction_array = np.select(cond_list, flux_fraction, default=-1)
 
@@ -253,17 +254,16 @@ class GullsButterpyInterface:
 
         return None
 
-    def write_lightcurve_file(self, nlines=14):
+    def write_lightcurve_file(self, nlines=23):
         output_lightcurve_name = f'{self.input_lightcurve_path.split("/")[-1].split(".")[0]}_var.det.lc'
         output_lightcurve_path = f'{self.output_directory}/{output_lightcurve_name}'
         # if os.path.exists(output_lightcurve_path):
-        #    raise FileExistsError('Your lightcurve already exists in this location')
-
-
+        # raise FileExistsError('Your lightcurve already exists in this location')
         # If this LC was not selected for variability, just write nans into variability columns.
         if self.use_var_columns:
             #if LC was selected, check chi2. If over threshold, overwrite vars with nans as well.
             delta_chi2 = self.get_delta_chi2()
+            # print(delta_chi2)
             if delta_chi2 > self.chi2_threshold:
                 self.use_var_columns = False
                 self.set_vars_tonan()
@@ -298,7 +298,7 @@ def process_lc(input_path,output_path):
     #print(input_path)
     ndays = 5000
     g2bp = GullsButterpyInterface(input_lightcurve_path=input_path,
-                                  output_directory=output_path,ndays=ndays,var_fraction=0.5)
+                                  output_directory=output_path,ndays=ndays,var_fraction=1)
     #parameters_array = [2, 5, 2, 45, 20, 12, 75]
     parameters_array = g2bp.draw_parameters()#draw parameters no matter what for consistency
     #only simulate the lc if it was selected to be variable
@@ -318,8 +318,8 @@ def process_lc(input_path,output_path):
 
 
 if __name__ == "__main__":
-    input_path = '/Users/jmbrashe/Data_Challenge/for_Jon'
-    output_path = '../small_test_outputs'
+    input_path = '/Users/jmbrashe/Downloads/RMDC26_SPMA02111'
+    output_path = '/Users/jmbrashe/Data_Challenge'
     lightcurves = glob.glob(input_path + '/*.lc')
     output_generator = Parallel(n_jobs=5,verbose=1)(delayed(process_lc)(lightcurves[i],output_path) for i in range(len(lightcurves)))
     times = np.array(output_generator)

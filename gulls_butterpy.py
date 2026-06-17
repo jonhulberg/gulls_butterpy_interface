@@ -210,8 +210,8 @@ class GullsButterpyInterface:
         fs2_array = np.select(cond_list, self.fs2_list, default=-1)
 
 
-        source1_flux = self.gulls_dataframe['source1_relative_flux']
-        source2_flux = self.gulls_dataframe['source2_relative_flux']
+        source1_flux = self.gulls_dataframe['Source_relative_flux']
+        source2_flux = self.gulls_dataframe['Source2_relative_flux']
         self.gulls_dataframe['variability_flux'] = self.renormalized_stellar_flux
         self.gulls_dataframe['variability_flux_bol'] = self.renormalized_flux
 
@@ -263,13 +263,38 @@ class GullsButterpyInterface:
         if self.use_var_columns:
             #if LC was selected, check chi2. If over threshold, overwrite vars with nans as well.
             delta_chi2 = self.get_delta_chi2()
-            # print(delta_chi2)
+            print(f'Delta chi2: {delta_chi2}')
             if delta_chi2 > self.chi2_threshold:
                 self.use_var_columns = False
                 self.set_vars_tonan()
         else:
+            self.use_var_columns = False
             self.set_vars_tonan()
 
+        ### merge off-season observations
+        # t1 = time.time()
+        W146_main = self.gulls_dataframe[self.gulls_dataframe['observatory_code']==0]
+        W146_off = self.gulls_dataframe[self.gulls_dataframe['observatory_code'] == 3]
+        W146_off.loc[:,'observatory_code'] = 0
+
+        Z087_main = self.gulls_dataframe[self.gulls_dataframe['observatory_code']==1]
+        Z087_off = self.gulls_dataframe[self.gulls_dataframe['observatory_code'] == 4]
+        Z087_off.loc[:,'observatory_code'] = 1
+
+        K213_main = self.gulls_dataframe[self.gulls_dataframe['observatory_code'] == 2]
+        K213_off = self.gulls_dataframe[self.gulls_dataframe['observatory_code'] == 5]
+        K213_off.loc[:,'observatory_code'] = 2
+
+        # t2 = time.time()
+        # print(f'Separation Time: {t2 - t1} s')
+
+        # t1 = time.time()
+        W146 = pd.concat([W146_main,W146_off]).sort_values('Simulation_time')
+        Z087 = pd.concat([Z087_main, Z087_off]).sort_values('Simulation_time')
+        K213 = pd.concat([K213_main, K213_off]).sort_values('Simulation_time')
+        # t2 = time.time()
+        # print(f'Sort Time: {t2-t1} s')
+        self.gulls_dataframe = pd.concat([W146,Z087,K213]).reset_index(drop=True)
         #Now get ready to write the output file.
         # copy lightcurve header
         with open(output_lightcurve_path, 'w') as out:
@@ -298,7 +323,7 @@ def process_lc(input_path,output_path):
     #print(input_path)
     ndays = 5000
     g2bp = GullsButterpyInterface(input_lightcurve_path=input_path,
-                                  output_directory=output_path,ndays=ndays,var_fraction=1)
+                                  output_directory=output_path,ndays=ndays,var_fraction=0.5)
     #parameters_array = [2, 5, 2, 45, 20, 12, 75]
     parameters_array = g2bp.draw_parameters()#draw parameters no matter what for consistency
     #only simulate the lc if it was selected to be variable
@@ -318,10 +343,10 @@ def process_lc(input_path,output_path):
 
 
 if __name__ == "__main__":
-    input_path = '/Users/jmbrashe/Downloads/RMDC26_SPMA02111'
-    output_path = '/Users/jmbrashe/Data_Challenge'
+    input_path = '/Volumes/jon_ssd/for_jon'
+    output_path = '/Volumes/jon_ssd/exp_test'
     lightcurves = glob.glob(input_path + '/*.lc')
-    output_generator = Parallel(n_jobs=5,verbose=1)(delayed(process_lc)(lightcurves[i],output_path) for i in range(len(lightcurves)))
+    output_generator = Parallel(n_jobs=8,verbose=1)(delayed(process_lc)(lightcurves[i],output_path) for i in range(len(lightcurves)))
     times = np.array(output_generator)
     print(np.median(times),np.std(times))
     np.savetxt(f'{output_path}/times.txt',times)

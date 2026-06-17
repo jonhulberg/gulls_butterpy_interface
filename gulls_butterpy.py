@@ -70,7 +70,7 @@ class GullsButterpyInterface:
 
     def draw_parameters(self):
         parameters_array = []
-        parameters_array.append(stats.loguniform.rvs(1,70, size=1)[0]) #activity level log_uniform 1-10
+        parameters_array.append(stats.loguniform.rvs(1,100, size=1)[0]) #activity level log_uniform 1-10
         parameters_array.append(stats.loguniform.rvs(1, 40, size=1)[0]) #cycle period log uniform 1-40 yr
         parameters_array.append(stats.loguniform.rvs(0.1, parameters_array[1], size=1)[0])  # cycle overlap log_uniform 0.1 - T_cycle
         parameters_array.append(stats.uniform.rvs(0, 40, size=1)[0]) # minlat uniform 0-40
@@ -261,16 +261,16 @@ class GullsButterpyInterface:
         # if os.path.exists(output_lightcurve_path):
         # raise FileExistsError('Your lightcurve already exists in this location')
         # If this LC was not selected for variability, just write nans into variability columns.
-        if self.use_var_columns:
-            #if LC was selected, check chi2. If over threshold, overwrite vars with nans as well.
-            delta_chi2 = self.get_delta_chi2()
-            # print(f'Delta chi2: {delta_chi2}')
-            if delta_chi2 > self.chi2_threshold:
-                self.use_var_columns = False
-                #self.set_vars_tonan()
-        else:
-            self.use_var_columns = False
-            #self.set_vars_tonan()
+        # if self.use_var_columns:
+        #     #if LC was selected, check chi2. If over threshold, overwrite vars with nans as well.
+        #     delta_chi2 = self.get_delta_chi2()
+        #     # print(f'Delta chi2: {delta_chi2}')
+        #     if delta_chi2 > self.chi2_threshold:
+        #         self.use_var_columns = False
+        #         #self.set_vars_tonan()
+        # else:
+        #     self.use_var_columns = False
+        #     #self.set_vars_tonan()
 
         ### merge off-season observations
         # t1 = time.time()

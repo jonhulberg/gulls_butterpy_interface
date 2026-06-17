@@ -12,7 +12,7 @@ from astropy.modeling.models import BlackBody
 from astropy import units as u
 
 class GullsButterpyInterface:
-    def __init__(self, input_lightcurve_path, output_directory,ndays=5000,chi2_threshold=5000, var_fraction = 0.25):
+    def __init__(self, input_lightcurve_path, output_directory,ndays=1800,chi2_threshold=5000, var_fraction = 0.25):
         self.parameters_array = None # initialize but fill later
 
         self.renormalized_stellar_flux = None
@@ -70,7 +70,7 @@ class GullsButterpyInterface:
 
     def draw_parameters(self):
         parameters_array = []
-        parameters_array.append(stats.loguniform.rvs(0.1,70, size=1)[0]) #activity level log_uniform 1-10
+        parameters_array.append(stats.loguniform.rvs(1,70, size=1)[0]) #activity level log_uniform 1-10
         parameters_array.append(stats.loguniform.rvs(1, 40, size=1)[0]) #cycle period log uniform 1-40 yr
         parameters_array.append(stats.loguniform.rvs(0.1, parameters_array[1], size=1)[0])  # cycle overlap log_uniform 0.1 - T_cycle
         parameters_array.append(stats.uniform.rvs(0, 40, size=1)[0]) # minlat uniform 0-40
@@ -100,11 +100,12 @@ class GullsButterpyInterface:
         if days_offset:
             self.days_offset = days_offset
         else:
-            self.days_offset = np.random.randint(500, self.ndays - np.ceil(
-                delta_t))  # place GBDTS survey at some random time after start of LC
+            self.days_offset = 10*self.parameters_array[5] +np.random.uniform(0,self.parameters_array[5],1)
+            # self.days_offset = np.random.randint(500, self.ndays - np.ceil(
+            #     delta_t))  # place GBDTS survey at some random time after start of LC
         self.star = bp.Surface()
         self.star.emerge_regions(
-            ndays=self.ndays,
+            ndays=self.ndays + self.days_offset,
             butterfly=True,
             activity_level=self.parameters_array[0],
             cycle_period=self.parameters_array[1],
@@ -263,13 +264,13 @@ class GullsButterpyInterface:
         if self.use_var_columns:
             #if LC was selected, check chi2. If over threshold, overwrite vars with nans as well.
             delta_chi2 = self.get_delta_chi2()
-            print(f'Delta chi2: {delta_chi2}')
+            # print(f'Delta chi2: {delta_chi2}')
             if delta_chi2 > self.chi2_threshold:
                 self.use_var_columns = False
-                self.set_vars_tonan()
+                #self.set_vars_tonan()
         else:
             self.use_var_columns = False
-            self.set_vars_tonan()
+            #self.set_vars_tonan()
 
         ### merge off-season observations
         # t1 = time.time()
@@ -321,9 +322,10 @@ def process_lc(input_path,output_path):
 
     time0 = time.time()
     #print(input_path)
-    ndays = 5000
+    ndays = 1800
+    var_frac = 1
     g2bp = GullsButterpyInterface(input_lightcurve_path=input_path,
-                                  output_directory=output_path,ndays=ndays,var_fraction=0.5)
+                                  output_directory=output_path,ndays=ndays,var_fraction=var_frac)
     #parameters_array = [2, 5, 2, 45, 20, 12, 75]
     parameters_array = g2bp.draw_parameters()#draw parameters no matter what for consistency
     #only simulate the lc if it was selected to be variable
@@ -344,7 +346,7 @@ def process_lc(input_path,output_path):
 
 if __name__ == "__main__":
     input_path = '/Volumes/jon_ssd/for_jon'
-    output_path = '/Volumes/jon_ssd/exp_test'
+    output_path = '/Volumes/jon_ssd/exp_test_fast'
     lightcurves = glob.glob(input_path + '/*.lc')
     output_generator = Parallel(n_jobs=8,verbose=1)(delayed(process_lc)(lightcurves[i],output_path) for i in range(len(lightcurves)))
     times = np.array(output_generator)
